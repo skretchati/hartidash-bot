@@ -1,5 +1,6 @@
 python-telegram-bot==20.7
 yt-dlp==2024.10.22
 qrcode[pil]==7.4.2
-Pillow==10.3.0
+Pillow
+
 requests==2.31.0
