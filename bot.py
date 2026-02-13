@@ -25,7 +25,7 @@ import qrcode
 
 # ===================== НАСТРОЙКИ =====================
 # Токен берется из переменных окружения (настройки Railway)
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
+BOT_TOKEN = os.environ.get("8430939712:AAHgNtELNl2Tv3slSt9vomhn_kYF26fDKno")
 if not BOT_TOKEN:
     raise ValueError("❌ BOT_TOKEN не найден! Добавьте его в переменные окружения Railway.")
 
