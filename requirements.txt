@@ -3,4 +3,3 @@ yt-dlp==2024.10.22
 qrcode[pil]==7.4.2
 Pillow
 
-requests==2.31.0
