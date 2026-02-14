@@ -1,0 +1,8 @@
+python-telegram-bot==20.7
+yt-dlp
+qrcode[pil]
+Pillow
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
