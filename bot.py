@@ -244,16 +244,24 @@ def get_main_menu(user_id):
     """Создает главное меню"""
     pref = user_data.get_preference(user_id)
     
-    # Эмодзи для разных типов
-    video_emoji = "🎥" + (" ✅" if pref == 'video' else "")
-    audio_emoji = "🎵" + (" ✅" if pref == 'audio' else "")
-    all_emoji = "📦" + (" ✅" if pref == 'all' else "")
+    # Кнопки с текстом и эмодзи
+    video_text = "🎥 Видео"
+    audio_text = "🎵 Аудио" 
+    all_text = "📦 Всё"
+    
+    # Добавляем галочку к текущему выбору
+    if pref == 'video':
+        video_text = "🎥 Видео ✅"
+    elif pref == 'audio':
+        audio_text = "🎵 Аудио ✅"
+    elif pref == 'all':
+        all_text = "📦 Всё ✅"
     
     keyboard = [
         [
-            InlineKeyboardButton(video_emoji, callback_data="set_video"),
-            InlineKeyboardButton(audio_emoji, callback_data="set_audio"),
-            InlineKeyboardButton(all_emoji, callback_data="set_all")
+            InlineKeyboardButton(video_text, callback_data="set_video"),
+            InlineKeyboardButton(audio_text, callback_data="set_audio"),
+            InlineKeyboardButton(all_text, callback_data="set_all")
         ],
         [
             InlineKeyboardButton("📱 QR-код", callback_data="menu_qr"),
@@ -264,16 +272,11 @@ def get_main_menu(user_id):
         ]
     ]
     
-    # Добавляем строку с текущим выбором
-    pref_names = {'video': '🎥 VIDEO', 'audio': '🎵 AUDIO', 'all': '📦 ALL'}
+    # Верхняя строка с текущим выбором
+    pref_names = {'video': '🎥 ВИДЕО', 'audio': '🎵 АУДИО', 'all': '📦 ВСЁ'}
     header = [InlineKeyboardButton(f"⚡ Твой выбор: {pref_names[pref]}", callback_data="noop")]
     
     return InlineKeyboardMarkup([header] + keyboard)
-
-def get_back_button():
-    """Кнопка возврата в меню"""
-    keyboard = [[InlineKeyboardButton("◀️ В меню", callback_data="back_to_menu")]]
-    return InlineKeyboardMarkup(keyboard)
 
 # ===================== ОБРАБОТЧИКИ КОМАНД =====================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
