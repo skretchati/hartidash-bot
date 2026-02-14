@@ -281,7 +281,7 @@ def get_drive_service():
 
 async def upload_to_drive(file_path, filename=None, user_id=None, chat_id=None):
     """
-    Загружает файл в Google Drive в папку HartiDash video
+    Загружает файл в Service Account и передает право собственности пользователю
     """
     try:
         service = get_drive_service()
@@ -289,50 +289,19 @@ async def upload_to_drive(file_path, filename=None, user_id=None, chat_id=None):
             logger.error("❌ Drive сервис не доступен")
             return None, None
         
-        # Название папки для загрузок
-        folder_name = "HartiDash video"
-        folder_id = None
-        
-        # Ищем папку по названию
-        logger.info(f"🔍 Ищу папку '{folder_name}' в Google Drive...")
-        results = service.files().list(
-            q=f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false",
-            fields="files(id, name)",
-            spaces='drive'
-        ).execute()
-        
-        folders = results.get('files', [])
-        
-        if folders:
-            folder_id = folders[0]['id']
-            logger.info(f"📁 Найдена папка '{folder_name}' с ID: {folder_id}")
-        else:
-            # Если папка не найдена, создаём её
-            logger.info(f"📁 Папка '{folder_name}' не найдена, создаю новую...")
-            file_metadata = {
-                'name': folder_name,
-                'mimeType': 'application/vnd.google-apps.folder'
-            }
-            folder = service.files().create(body=file_metadata, fields='id').execute()
-            folder_id = folder.get('id')
-            logger.info(f"📁 Создана новая папка с ID: {folder_id}")
-        
-        # Подготовка метаданных файла с указанием папки
+        # Загружаем файл в диск Service Account
         file_metadata = {
             'name': filename or os.path.basename(file_path),
-            'parents': [folder_id]  # Указываем ID папки
         }
         
-        # Создаем медиа-загрузчик
         media = MediaFileUpload(
             file_path,
             resumable=True,
             chunksize=1024*1024
         )
         
-        logger.info(f"📤 Загружаю в папку '{folder_name}': {file_path}")
+        logger.info(f"📤 Загружаю в Drive Service Account...")
         
-        # Загружаем файл
         file = service.files().create(
             body=file_metadata,
             media_body=media,
@@ -340,13 +309,53 @@ async def upload_to_drive(file_path, filename=None, user_id=None, chat_id=None):
         ).execute()
         
         file_id = file.get('id')
-        logger.info(f"✅ Файл загружен в Drive, ID: {file_id}")
+        logger.info(f"✅ Файл загружен в Service Account, ID: {file_id}")
         
-        # Делаем файл доступным по ссылке
+        # ВАЖНО: ЗАМЕНИТЕ НА СВОЙ EMAIL!
+        your_email = "hartidash@gmail.com"  # <--- ИЗМЕНИТЕ ЭТО
+        
+        # Делаем файл доступным по ссылке (до передачи прав)
         service.permissions().create(
             fileId=file_id,
             body={'type': 'anyone', 'role': 'reader'}
         ).execute()
+        
+        # Передаем права собственности вам
+        try:
+            # Сначала добавляем вас как редактора
+            editor_permission = {
+                'type': 'user',
+                'role': 'writer',
+                'emailAddress': your_email
+            }
+            
+            service.permissions().create(
+                fileId=file_id,
+                body=editor_permission
+            ).execute()
+            logger.info(f"✅ Вы добавлены как редактор")
+            
+            # Получаем ID вашего разрешения
+            permissions = service.permissions().list(
+                fileId=file_id,
+                fields="permissions(id,emailAddress,role)"
+            ).execute()
+            
+            for perm in permissions.get('permissions', []):
+                if perm.get('emailAddress') == your_email:
+                    # Передаем права собственности
+                    service.permissions().update(
+                        fileId=file_id,
+                        permissionId=perm['id'],
+                        body={'role': 'owner'},
+                        transferOwnership=True
+                    ).execute()
+                    logger.info(f"✅ Права собственности переданы вам (требуется принятие)")
+                    break
+                    
+        except Exception as e:
+            logger.error(f"❌ Ошибка при передаче прав: {e}")
+            # Продолжаем работу, даже если передача прав не удалась
         
         # Сохраняем информацию о файле
         delete_time = drive_manager.add_file(
@@ -358,6 +367,7 @@ async def upload_to_drive(file_path, filename=None, user_id=None, chat_id=None):
         
         delete_time_formatted = datetime.fromisoformat(delete_time).strftime("%d.%m.%Y в %H:%M")
         
+        # Возвращаем ссылку и время удаления
         return f"https://drive.google.com/uc?id={file_id}", delete_time_formatted
         
     except HttpError as e:
