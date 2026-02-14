@@ -244,7 +244,7 @@ def get_main_menu(user_id):
     """Создает главное меню"""
     pref = user_data.get_preference(user_id)
     
-    # Кнопки с текстом и эмодзи
+    # Кнопки с текстом и эмодзи для форматов
     video_text = "🎥 Видео"
     audio_text = "🎵 Аудио" 
     all_text = "📦 Всё"
@@ -257,26 +257,30 @@ def get_main_menu(user_id):
     elif pref == 'all':
         all_text = "📦 Всё ✅"
     
+    # Создаем клавиатуру с кнопками
     keyboard = [
+        # Первая строка - форматы
         [
             InlineKeyboardButton(video_text, callback_data="set_video"),
             InlineKeyboardButton(audio_text, callback_data="set_audio"),
             InlineKeyboardButton(all_text, callback_data="set_all")
         ],
+        # Вторая строка - QR и статистика
         [
             InlineKeyboardButton("📱 QR-код", callback_data="menu_qr"),
             InlineKeyboardButton("📊 Статистика", callback_data="menu_stats")
         ],
+        # Третья строка - помощь
         [
             InlineKeyboardButton("❓ Помощь", callback_data="menu_help")
         ]
     ]
     
-    # Верхняя строка с текущим выбором
-    pref_names = {'video': '🎥 ВИДЕО', 'audio': '🎵 АУДИО', 'all': '📦 ВСЁ'}
-    header = [InlineKeyboardButton(f"⚡ Твой выбор: {pref_names[pref]}", callback_data="noop")]
-    
-    return InlineKeyboardMarkup([header] + keyboard)
+    return InlineKeyboardMarkup(keyboard)
+    def get_back_button():
+    """Создает кнопку возврата в меню"""
+    keyboard = [[InlineKeyboardButton("◀️ В меню", callback_data="back_to_menu")]]
+    return InlineKeyboardMarkup(keyboard)
 
 # ===================== ОБРАБОТЧИКИ КОМАНД =====================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
