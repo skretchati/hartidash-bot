@@ -25,7 +25,17 @@ from telegram.ext import (
 import yt_dlp
 import qrcode
 import yadisk
-
+# ВРЕМЕННАЯ ОТЛАДКА - удалить потом
+import os
+print("=== ОТЛАДКА ФАЙЛОВ ===")
+print("Текущая папка:", os.getcwd())
+print("Файлы в папке:", os.listdir('.'))
+if os.path.exists('cookies.txt'):
+    print("✅ cookies.txt НАЙДЕН!")
+    print("Размер:", os.path.getsize('cookies.txt'), "байт")
+else:
+    print("❌ cookies.txt НЕ НАЙДЕН!")
+print("=====================")
 # ===================== НАСТРОЙКА ЛОГИРОВАНИЯ =====================
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
