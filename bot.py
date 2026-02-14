@@ -30,34 +30,70 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from googleapiclient.errors import HttpError
 
-# ===================== НАСТРОЙКИ =====================
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
-if not BOT_TOKEN:
-    raise ValueError("❌ BOT_TOKEN не найден! Добавьте его в переменные окружения Railway.")
-
-# Google Drive настройки
-GOOGLE_DRIVE_CREDENTIALS = os.environ.get("GOOGLE_DRIVE_CREDENTIALS")
-if GOOGLE_DRIVE_CREDENTIALS:
-    try:
-        # Убираем лишние кавычки, если они есть
-        clean_creds = GOOGLE_DRIVE_CREDENTIALS.strip()
-        if clean_creds.startswith('"') and clean_creds.endswith('"'):
-            clean_creds = clean_creds[1:-1]
-        DRIVE_CREDENTIALS = json.loads(clean_creds)
-        logger.info("✅ Google Drive credentials загружены")
-    except Exception as e:
-        logger.error(f"❌ Ошибка загрузки Drive credentials: {e}")
-        DRIVE_CREDENTIALS = None
-else:
-    DRIVE_CREDENTIALS = None
-    logger.info("⚠️ Google Drive не настроен")
-
-# Настройка логирования
+# ===================== НАСТРОЙКА ЛОГИРОВАНИЯ (ДО ВСЕГО) =====================
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+logger.info("⚡ Запуск HartiDash...")
+
+# ===================== НАСТРОЙКИ =====================
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+if not BOT_TOKEN:
+    logger.error("❌ BOT_TOKEN не найден!")
+    raise ValueError("❌ BOT_TOKEN не найден! Добавьте его в переменные окружения Railway.")
+
+# Google Drive настройки с улучшенной обработкой ошибок
+GOOGLE_DRIVE_CREDENTIALS = os.environ.get("GOOGLE_DRIVE_CREDENTIALS")
+DRIVE_CREDENTIALS = None
+
+if GOOGLE_DRIVE_CREDENTIALS:
+    try:
+        # Убираем лишние кавычки и пробелы
+        clean_creds = GOOGLE_DRIVE_CREDENTIALS.strip()
+        
+        # Если строка начинается и заканчивается кавычками - убираем их
+        if (clean_creds.startswith('"') and clean_creds.endswith('"')) or \
+           (clean_creds.startswith("'") and clean_creds.endswith("'")):
+            clean_creds = clean_creds[1:-1]
+        
+        # Дополнительная очистка от экранированных кавычек
+        clean_creds = clean_creds.replace('\\"', '"')
+        
+        # Пробуем распарсить JSON
+        DRIVE_CREDENTIALS = json.loads(clean_creds)
+        logger.info("✅ Google Drive credentials успешно загружены")
+        
+        # Проверяем наличие всех необходимых полей
+        required_fields = ['type', 'project_id', 'private_key_id', 'private_key', 
+                          'client_email', 'client_id', 'auth_uri', 'token_uri']
+        missing_fields = [field for field in required_fields if field not in DRIVE_CREDENTIALS]
+        
+        if missing_fields:
+            logger.warning(f"⚠️ В credentials отсутствуют поля: {missing_fields}")
+        else:
+            logger.info("✅ Все необходимые поля credentials присутствуют")
+            
+    except json.JSONDecodeError as e:
+        logger.error(f"❌ Ошибка парсинга JSON: {e}")
+        logger.error("📄 Первые 200 символов credentials: " + GOOGLE_DRIVE_CREDENTIALS[:200])
+        DRIVE_CREDENTIALS = None
+    except Exception as e:
+        logger.error(f"❌ Неизвестная ошибка при загрузке Drive credentials: {e}")
+        DRIVE_CREDENTIALS = None
+else:
+    logger.info("⚠️ Google Drive не настроен (переменная GOOGLE_DRIVE_CREDENTIALS отсутствует)")
+
+# Временная директория
+TEMP_DIR = tempfile.gettempdir()
+MAX_TELEGRAM_SIZE = 50 * 1024 * 1024  # 50 МБ - лимит Telegram
+
+# Файл для хранения информации о загруженных в Drive файлах
+DRIVE_FILES_DB = os.path.join(TEMP_DIR, 'drive_files.json')
+
+logger.info(f"📁 Временная директория: {TEMP_DIR}")
+logger.info(f"📦 Максимальный размер для Telegram: {MAX_TELEGRAM_SIZE / 1024 / 1024} МБ")
 
 # Временная директория
 TEMP_DIR = tempfile.gettempdir()
